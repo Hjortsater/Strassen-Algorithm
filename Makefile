@@ -1,8 +1,9 @@
 CC = clang
 
-CFLAGS = -Wall -Wextra -O3 -fopenmp\
+# aggressive optimization for speed: vectorize, tune, link-time-opt, fast-math
+CFLAGS = -Wall -Wextra -Ofast -march=native -flto -funroll-loops -fopenmp -ffast-math \
          -DPRINT=0 \
-         -DOPTMULT=1 \
+         -DOPTMULT=2 \
          -DOPTCUTOFF=32 \
          -DPARALLEL_CUTOFF=64
 

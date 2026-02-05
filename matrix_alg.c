@@ -65,13 +65,17 @@ Matrix matrix_mul_std(const Matrix *A, const Matrix *B) {
     Matrix C = _matrix_alloc(N);
     if (!C.data) return C;
 
+    /* cache-friendly i-k-j ordering: zero C then accumulate by k */
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < N; j++)
+            MAT(C.data, N, i, j) = 0;
+
     for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            long long sum = 0;
-            for (int k = 0; k < N; k++) {
-                sum += MAT(A->data, N, i, k) * MAT(B->data, N, k, j);
+        for (int k = 0; k < N; k++) {
+            int a_ik = MAT(A->data, N, i, k);
+            for (int j = 0; j < N; j++) {
+                MAT(C.data, N, i, j) += a_ik * MAT(B->data, N, k, j);
             }
-            MAT(C.data, N, i, j) = sum;
         }
     }
 

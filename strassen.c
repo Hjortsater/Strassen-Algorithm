@@ -31,13 +31,17 @@ int next_power_of_two(int n) {
 void strassen_rec(const int *A, const int *B, int *C, int N, int sA, int sB, int sC, int *ws) {
     /* Base Case: For small matrices, use the standard O(n^3) approach */
     if (N <= OPTCUTOFF) {
+        /* cache-friendly i-k-j ordering: zero C then accumulate by k */
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < N; j++)
+                MAT(C, sC, i, j) = 0;
+
         for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                long long sum = 0;
-                for (int k = 0; k < N; k++) {
-                    sum += MAT(A, sA, i, k) * MAT(B, sB, k, j);
+            for (int k = 0; k < N; k++) {
+                int a_ik = MAT(A, sA, i, k);
+                for (int j = 0; j < N; j++) {
+                    MAT(C, sC, i, j) += a_ik * MAT(B, sB, k, j);
                 }
-                MAT(C, sC, i, j) = sum;
             }
         }
         return;
