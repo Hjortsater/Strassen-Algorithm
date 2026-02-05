@@ -1,6 +1,6 @@
 CC = clang
 
-CFLAGS = -Wall -Wextra -O3 \
+CFLAGS = -Wall -Wextra -O3 -fopenmp\
          -DPRINT=0 \
          -DOPTMULT=1 \
          -DOPTCUTOFF=32 \
