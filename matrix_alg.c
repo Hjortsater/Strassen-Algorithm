@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include "matrix_alg.h"
 #include "strassen.h"
 
 /*
     Macro to simplify 2D indexing: p=pointer, s=stride(N), i=row, j=col.
     Stride CANNOT be found in the matrix struct defined in the header
-    file; as its only truly required for the strassen algorithm to work
+    file as its only truly required for the strassen algorithm to work
     I did not want to expose it to main. For the same reason addition
     is defined with stride in mind, and as static.
 */
