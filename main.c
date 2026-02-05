@@ -33,16 +33,28 @@ int main(int argc, char* argv[]){
     Matrix B = matrix_create_rand(N);
     Matrix C;
 
-    clock_t t = clock();
+    struct timespec wall_start, wall_end;
+    clock_gettime(CLOCK_MONOTONIC, &wall_start);
+
+    clock_t cpu_start = clock();
 
 #if OPTMULT
     C = matrix_mul_opt(&A, &B);
 #else
     C = matrix_mul_std(&A, &B);
 #endif
-    t = clock() - t;
 
-    printf("\n\n >>>>> mul time: %.6f s\n\n\n", (double)t / CLOCKS_PER_SEC);
+    clock_t cpu_end = clock();
+    clock_gettime(CLOCK_MONOTONIC, &wall_end);
+
+    double wall_sec = (wall_end.tv_sec - wall_start.tv_sec) + 
+                      (wall_end.tv_nsec - wall_start.tv_nsec) / 1e9;
+    double cpu_sec = (double)(cpu_end - cpu_start) / CLOCKS_PER_SEC;
+
+    printf("\n\n>>>>> wall time: %.6f s\n", wall_sec);
+    printf(">>>>> CPU time: %.6f s\n", cpu_sec);
+
+
 
 #if PRINT
     printf("Matrix A:\n");
