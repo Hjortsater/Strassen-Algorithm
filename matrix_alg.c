@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include "matrix_alg.h"
 #include "strassen.h"
 
@@ -10,6 +11,7 @@
     I did not want to expose it to main. For the same reason addition
     is defined with stride in mind, and as static.
 */
+
 #define MAT(p, s, i, j) ((p)[(i)*(s) + (j)])
 
 static Matrix _matrix_alloc(int N) {
@@ -99,9 +101,16 @@ Matrix matrix_mul_opt(const Matrix *A, const Matrix *B) {
             MAT(Bp, P, i, j) = MAT(B->data, N, i, j);
         }
 
-    int *workspace = calloc(12 * P * P, sizeof(int));
+    int *workspace = calloc(32 * P * P, sizeof(int));
 
-    strassen_rec(Ap, Bp, Cp, P, P, P, P, workspace);
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            strassen_rec(Ap, Bp, Cp, P, P, P, P, workspace);
+        }
+    }
+
 
     /* Unpad result */
     for (int i = 0; i < N; i++)

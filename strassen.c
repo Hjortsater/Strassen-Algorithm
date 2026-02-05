@@ -4,6 +4,11 @@
 #define OPTCUTOFF 32
 #endif
 
+#ifndef PARALLEL_CUTOFF
+#define PARALLEL_CUTOFF 64
+#endif
+
+
 /* Static helpers: only strassen.c can see these */
 static void _mat_add(const int *A, const int *B, int *C, int n, int sA, int sB, int sC) {
     for (int i = 0; i < n; i++)
@@ -37,8 +42,8 @@ void strassen_rec(const int *A, const int *B, int *C, int N, int sA, int sB, int
         }
         return;
     }
-    
 
+    
     /* 1. Calculate dimensions and prepare workspace pointers */
     int half = (N >> 1) + (N & 1);
     int size = half * half;
@@ -54,6 +59,16 @@ void strassen_rec(const int *A, const int *B, int *C, int N, int sA, int sB, int
         int *t2 = ws + size * 8;
 
         int *next_ws = ws + size * 9;
+
+        int ws_stride = size * 9;
+
+        int *ws1 = next_ws + ws_stride * 0;
+        int *ws2 = next_ws + ws_stride * 1;
+        int *ws3 = next_ws + ws_stride * 2;
+        int *ws4 = next_ws + ws_stride * 3;
+        int *ws5 = next_ws + ws_stride * 4;
+        int *ws6 = next_ws + ws_stride * 5;
+        int *ws7 = next_ws + ws_stride * 6;
 
         /* 2. Subdivide input matrices using pointers and stride */
         const int *A11 = A;
@@ -75,33 +90,42 @@ void strassen_rec(const int *A, const int *B, int *C, int N, int sA, int sB, int
         
         _mat_add(A11, A22, t1, half, sA, sA, half);
         _mat_add(B11, B22, t2, half, sB, sB, half);
-        strassen_rec(t1, t2, m1, half, half, half, half, next_ws);
+        #pragma omp task shared(m1) if (N > PARALLEL_CUTOFF)
+        strassen_rec(t1, t2, m1, half, half, half, half, ws1);
 
         // M2 = (A21 + A22) * B11
         _mat_add(A21, A22, t1, half, sA, sA, half);
-        strassen_rec(t1, B11, m2, half, half, sB, half, next_ws);
+        #pragma omp task shared(m2) if (N > PARALLEL_CUTOFF)
+        strassen_rec(t1, B11, m2, half, half, sB, half, ws2);
 
         // M3 = A11 * (B12 - B22)
         _mat_sub(B12, B22, t2, half, sB, sB, half);
-        strassen_rec(A11, t2, m3, half, sA, half, half, next_ws);
+        #pragma omp task shared(m3) if (N > PARALLEL_CUTOFF)
+        strassen_rec(A11, t2, m3, half, sA, half, half, ws3);
 
         // M4 = A22 * (B21 - B11)
         _mat_sub(B21, B11, t2, half, sB, sB, half);
-        strassen_rec(A22, t2, m4, half, sA, half, half, next_ws);
+        #pragma omp task shared(m4) if (N > PARALLEL_CUTOFF)
+        strassen_rec(A22, t2, m4, half, sA, half, half, ws4);
 
         // M5 = (A11 + A12) * B22
         _mat_add(A11, A12, t1, half, sA, sA, half);
-        strassen_rec(t1, B22, m5, half, half, sB, half, next_ws);
+        #pragma omp task shared(m5) if (N > PARALLEL_CUTOFF)
+        strassen_rec(t1, B22, m5, half, half, sB, half, ws5);
 
         // M6 = (A21 - A11) * (B11 + B12)
         _mat_sub(A21, A11, t1, half, sA, sA, half);
         _mat_add(B11, B12, t2, half, sB, sB, half);
-        strassen_rec(t1, t2, m6, half, half, half, half, next_ws);
+        #pragma omp task shared(m6) if (N > PARALLEL_CUTOFF)
+        strassen_rec(t1, t2, m6, half, half, half, half, ws6);
 
         // M7 = (A12 - A22) * (B21 + B22)
         _mat_sub(A12, A22, t1, half, sA, sA, half);
         _mat_add(B21, B22, t2, half, sB, sB, half);
-        strassen_rec(t1, t2, m7, half, half, half, half, next_ws);
+        #pragma omp task shared(m7) if (N > PARALLEL_CUTOFF)
+        strassen_rec(t1, t2, m7, half, half, half, half, ws7);
+
+        #pragma omp taskwait
 
         /* 4. Combine M-matrices into the quadrants of C */
 
